@@ -166,8 +166,8 @@ def get_lang_non_async(guild_id: int, *keys) -> Union[list[str], str]:
         LANGS[lang] = open_json(os.path.join("langs", f"{lang}.json"))
 
     if len(keys) == 1:
-        return LANGS.get(lang, {}).get(keys[0], "Language pack not found!")
-    return [LANGS.get(lang, {}).get(key, "Language pack not found!") for key in keys]
+        return LANGS.get(lang, {}).get(keys[0], "Not found!")
+    return [LANGS.get(lang, {}).get(key, "Not found!") for key in keys]
 
 def format_bytes(bytes: int, unit: bool = False):
     if bytes <= 1_000_000_000:
