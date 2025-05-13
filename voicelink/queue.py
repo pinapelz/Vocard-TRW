@@ -38,6 +38,13 @@ class LoopTypeCycle:
         self.current = next(self._cycle)
         return self.current
 
+    def peek_next(self) -> LoopType:
+        temp_cycle = cycle(LoopType)
+        while next(temp_cycle) != self.current:
+            pass
+        
+        return next(temp_cycle)
+    
     def set_mode(self, value: LoopType) -> LoopType:
         while next(self._cycle) != value:
             pass
