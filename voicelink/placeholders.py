@@ -70,6 +70,10 @@ class Placeholders:
             "server_invite_link": func.settings.invite_link,
             "invite_link": f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=2184260928&scope=bot%20applications.commands"
         }
+
+        self.regexes = {
+            "@@t_(.*?)@@": self.translation
+        }
         
     def get_current(self) -> Track:
         return self.player.current if self.player else None
@@ -152,11 +156,14 @@ class Placeholders:
 
     def bot_icon(self) -> str:
         return self.bot.user.display_avatar.url if self.player else "https://i.imgur.com/dIFBwU7.png"
+    
+    def translation(self, text: str) -> str:
+        return self.player.get_msg(text)
         
     def replace(self, text: str, variables: dict[str, str]) -> str:
         if not text or text.isspace(): return
-        pattern = r"\{\{(.*?)\}\}"
-        matches: list[str] = re.findall(pattern, text)
+
+        matches: list[str] = re.findall(r"\{\{(.*?)\}\}", text)
 
         for match in matches:
             parts: list[str] = match.split("??")
@@ -185,6 +192,8 @@ class Placeholders:
             except:
                 text = text.replace("{{" + match + "}}", "")
 
+        for regex_pattern, func in self.regexes.items():
+            text = re.sub(regex_pattern, lambda m: func(m.group(1)), text)
         text = re.sub(r'@@(.*?)@@', lambda x: str(variables.get(x.group(1), '')), text)
         return text
     
