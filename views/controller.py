@@ -33,36 +33,20 @@ from typing import Optional, Dict, Type, Union, Any
 
 def key(interaction: discord.Interaction):
     return interaction.user
-
-def replace_translations(player: "voicelink.Player", msg: str) -> str:
-    """Replace placeholders in the message with translated texts."""
-    keys = re.findall(r'@@(.*?)@@', msg)
-    translated_texts = player.get_msg(*keys)
-    if not isinstance(translated_texts, list):
-        translated_texts = [translated_texts]
-
-    for key, value in zip(keys, translated_texts):
-        if value:
-            msg = msg.replace(f"@@{key}@@", str(value))
-    return msg
     
 class ControlButton(discord.ui.Button):
     def __init__(
         self,
-        player,
+        player: "voicelink.Player",
         btn_data: Dict[str, Any],
         default_states: Optional[str] = None,
         **kwargs
     ):
+        super().__init__(**kwargs)
+
         self.player: voicelink.Player = player
         self.btn_data: Dict[str, Any] = btn_data
-
-        btn_config = self._get_button_config(default_states)
-        emoji = btn_config.get("emoji", btn_data.get("emoji"))
-        style = self._get_button_style(btn_config.get("style"))
-        label = replace_translations(self.player, btn_config.get("label"))
-
-        super().__init__(emoji=emoji, style=style, label=label, **kwargs)
+        self.change_states(default_states)
 
     def _get_button_config(self, states: Optional[str]) -> Dict[str, Any]:
         """Retrieve button configuration based on states."""
@@ -81,11 +65,12 @@ class ControlButton(discord.ui.Button):
     
     def change_states(self, states: str) -> None:
         """Change the button's emoji and label based on the provided state."""
+        states = states.lower() if states else None
         state_config = self._get_button_config(states)
         if state_config:
-            self.emoji = state_config.get("emoji", self.emoji)
+            self.emoji = state_config.get("emoji") or None
             self.style = self._get_button_style(state_config.get("style"))
-            self.label = replace_translations(self.player, state_config.get("label", self.label))
+            self.label = self.player._ph.replace(state_config.get("label"), {})
     
     async def send(self, interaction: discord.Interaction, key: str, *params, view: discord.ui.View = None, ephemeral: bool = False) -> None:
         stay = self.player.settings.get("controller_msg", True)
@@ -220,9 +205,9 @@ class AddFav(ControlButton):
             await self.send(interaction, "playlistAddError2", ephemeral=True)
 
 class Loop(ControlButton):
-    def __init__(self, **kwargs):        
+    def __init__(self, **kwargs):
         super().__init__(
-            default_states=kwargs["player"].queue.repeat.lower(),
+            default_states=kwargs["player"].queue._repeat.peek_next().name,
             **kwargs
         )
     
@@ -231,7 +216,7 @@ class Loop(ControlButton):
             return await self.send(interaction, 'missingPerms_mode', ephemeral=True)
 
         mode = await self.player.set_repeat(requester=interaction.user)
-        self.change_states(mode)
+        self.change_states(self.player.queue._repeat.peek_next().name)
 
         await interaction.response.edit_message(view=self.view)
         await self.send(interaction, 'repeat', mode.name.capitalize())
@@ -265,7 +250,7 @@ class VolumeDown(ControlButton):
 class VolumeMute(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            default_states="muted" if kwargs["player"].volume else "mute"
+            default_states="muted" if kwargs["player"].volume else "mute",
             **kwargs
         )
     
@@ -374,21 +359,25 @@ class Lyrics(ControlButton):
             view.response = await self.send(interaction, view.build_embed(), view=view, ephemeral=True)
 
 class Tracks(discord.ui.Select):
-    def __init__(self, player, btn_data, **kwargs):
+    def __init__(self, player: "voicelink.Player", btn_data, **kwargs):
         self.player: voicelink.Player = player
+        
+        if player.queue.is_empty:
+            raise ValueError("Player queue is empty, cannot create Tracks row instance.")
         
         options = []
         for index, track in enumerate(self.player.queue.tracks(), start=1):
-            if index > 10:
+            if index > min(max(btn_data.get("max_options", 10), 1), 25):
                 break
             options.append(discord.SelectOption(label=f"{index}. {track.title[:40]}", description=f"{track.author[:30]} · " + ("Live" if track.is_stream else track.formatted_length), emoji=track.emoji))
 
         super().__init__(
-            placeholder=replace_translations(player, btn_data.get("label")),
+            placeholder=self.player._ph.replace(btn_data.get("label"), {}),
             options=options,
+            disabled=player.queue.is_empty,
             **kwargs
         )
-
+    
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
             return await func.send(interaction, "missingPerms_function", ephemeral=True)
@@ -400,7 +389,7 @@ class Tracks(discord.ui.Select):
             await func.send(interaction, "skipped", interaction.user)
 
 class Effects(discord.ui.Select):
-    def __init__(self, player, btn_data, row):
+    def __init__(self, player: "voicelink.Player", btn_data, row):
 
         self.player: voicelink.Player = player
         
@@ -409,11 +398,11 @@ class Effects(discord.ui.Select):
             options.append(discord.SelectOption(label=name.capitalize(), value=name))
 
         super().__init__(
-            placeholder=replace_translations(player, btn_data.get("label")),
+            placeholder=self.player._ph.replace(btn_data.get("label"), {}),
             options=options,
             row=row
         )
-
+    
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
             return await func.send(interaction, "missingPerms_function", ephemeral=True)
@@ -458,11 +447,14 @@ class InteractiveController(discord.ui.View):
         for row_num, btn_row in enumerate(func.settings.controller.get("buttons")):
             for btn_name, btn_data in btn_row.items():
                 btn_class = BUTTON_TYPE.get(btn_name.lower())
-                if not btn_class or (btn_name.lower() == "tracks" and player.queue.is_empty):
+                if not btn_class:
                     continue
-
-                self.add_item(btn_class(player=player, btn_data=btn_data, row=row_num))
-
+                
+                try:
+                    self.add_item(btn_class(player=player, btn_data=btn_data, row=row_num))
+                except ValueError:
+                    pass
+                
         self.cooldown = commands.CooldownMapping.from_cooldown(2.0, 10.0, key)
             
     async def interaction_check(self, interaction: discord.Interaction):
@@ -482,7 +474,7 @@ class InteractiveController(discord.ui.View):
             await func.send(interaction, "notInChannel", interaction.user.mention, self.player.channel.mention, ephemeral=True)
             return False
 
-    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item):
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item) -> None:
         if isinstance(error, views.ButtonOnCooldown):
             sec = int(error.retry_after)
             await interaction.response.send_message(f"You're on cooldown for {sec} second{'' if sec == 1 else 's'}!", ephemeral=True)

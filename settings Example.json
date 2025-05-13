@@ -121,27 +121,27 @@
             {
                 "back": {
                     "emoji": "⏮️",
-                    "label": "@@buttonBack@@"
+                    "label": "@@t_buttonBack@@"
                 },
                 "play-pause": {
                     "states": {
                         "pause": {
                             "emoji": "⏸️",
-                            "label": "@@buttonPause@@"
+                            "label": "@@t_buttonPause@@"
                         },
                         "resume": {
                             "emoji": "▶️",
-                            "label": "@@buttonResume@@"
+                            "label": "@@t_buttonResume@@"
                         }
                     }
                 },
                 "skip": {
                     "emoji": "⏭️",
-                    "label": "@@buttonSkip@@"
+                    "label": "@@t_buttonSkip@@"
                 },
                 "stop": {
                     "emoji": "⏹️",
-                    "label": "@@buttonLeave@@",
+                    "label": "@@t_buttonLeave@@",
                     "style": "red"
                 },
                 "add-fav": {
@@ -151,7 +151,8 @@
             },
             {
                 "tracks": {
-                    "label": "@@playerDropdown@@"
+                    "label": "@@t_playerDropdown@@",
+                    "max_options": 10
                 }
             }
         ]
