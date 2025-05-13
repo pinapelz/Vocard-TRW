@@ -215,11 +215,10 @@ class Loop(ControlButton):
         if not self.player.is_privileged(interaction.user):
             return await self.send(interaction, 'missingPerms_mode', ephemeral=True)
 
-        mode = await self.player.set_repeat(requester=interaction.user)
+        await self.player.set_repeat(requester=interaction.user)
         self.change_states(self.player.queue._repeat.peek_next().name)
 
         await interaction.response.edit_message(view=self.view)
-        await self.send(interaction, 'repeat', mode.name.capitalize())
         
 class VolumeUp(ControlButton):
     def __init__(self, **kwargs):
