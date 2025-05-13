@@ -228,7 +228,7 @@ async def send(
         "allowed_mentions": ALLOWED_MENTIONS
     }
     
-    if hasattr(send_func, "delete_after"):
+    if "delete_after" in send_func.__code__.co_varnames:
         send_kwargs["delete_after"] = delete_after
     
     if view:
