@@ -212,8 +212,8 @@ async def send(
     # Determine the sending function
     send_func = (
         ctx.send if isinstance(ctx, commands.Context) else 
-        ctx.response.send_message if not ctx.response.is_done() else 
-        ctx.followup.send
+        ctx.followup.send if ctx.response.is_done() else 
+        ctx.response.send_message
     )
 
     # Check settings for delete_after duration
@@ -221,10 +221,21 @@ async def send(
     if settings and ctx.channel.id == settings.get("music_request_channel", {}).get("text_channel_id"):
         delete_after = 10
 
-    # Send the message or embed
+    send_kwargs = {
+        "content": text,
+        "embed": embed,
+        "ephemeral": ephemeral,
+        "allowed_mentions": ALLOWED_MENTIONS
+    }
+    
+    if hasattr(send_func, "delete_after"):
+        send_kwargs["delete_after"] = delete_after
+    
     if view:
-        return await send_func(text, embed=embed, view=view, delete_after=delete_after, ephemeral=ephemeral, allowed_mentions=ALLOWED_MENTIONS)
-    return await send_func(text, embed=embed, delete_after=delete_after, ephemeral=ephemeral, allowed_mentions=ALLOWED_MENTIONS)
+        send_kwargs["view"] = view
+
+    # Send the message or embed
+    return await send_func(**send_kwargs)
 
 async def update_db(db: AsyncIOMotorCollection, tempStore: dict, filter: dict, data: dict) -> bool:
     for mode, action in data.items():
