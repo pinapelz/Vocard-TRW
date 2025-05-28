@@ -314,7 +314,7 @@ async def toggleAutoplay(player: Player, member: Member, data: Dict) -> Dict:
     return {
         "op": "toggleAutoplay",
         "status": check,
-        "guildId": player.guild.id,
+        "guildId": str(player.guild.id),
         "requesterId": str(member.id)
     }
 
