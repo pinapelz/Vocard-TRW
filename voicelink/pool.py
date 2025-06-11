@@ -399,6 +399,9 @@ class Node:
             return []
         
         tracks = await self.get_tracks(query=query, requester=self.bot.user)
+        if not track:
+            return []
+        
         if isinstance(tracks, Playlist):
             tracks = tracks.tracks
 
