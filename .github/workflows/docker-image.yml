@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    tags: 
+    tags:
       - '*'  # Trigger on any tag
     branches:
       - main  # Trigger on push to main branch
@@ -19,21 +19,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Determine Image Tag
+        id: image_tag
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            IMAGE_NAME="ghcr.io/chocomeow/vocard:${{ github.ref_name }}"
+          elif [ "${{ github.ref }}" == "refs/heads/beta" ]; then
+            IMAGE_NAME="ghcr.io/chocomeow/vocard:beta"
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            IMAGE_NAME="ghcr.io/chocomeow/vocard:latest"
+          else
+            echo "Error: Triggered on an unexpected ref: ${{ github.ref }}"
+            exit 1
+          fi
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "Set image name to: ${IMAGE_NAME}"
+
       - name: Build the Docker image
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            TAG=${GITHUB_REF#refs/tags/}
-            IMAGE_NAME="ghcr.io/chocomeow/vocard:${TAG}"
-          elif [[ $GITHUB_REF == refs/heads/beta ]]; then
-            IMAGE_NAME="ghcr.io/chocomeow/vocard:beta"
-          else
-            IMAGE_NAME="ghcr.io/chocomeow/vocard:latest"
-          fi
-          
-          echo "Building image: $IMAGE_NAME"
-          docker build . --file Dockerfile --tag $IMAGE_NAME
-      
+          echo "Building image: ${{ env.IMAGE_NAME }}"
+          docker build . --file Dockerfile --tag ${{ env.IMAGE_NAME }}
+
       - name: Log in to GitHub Docker Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,5 +48,6 @@ jobs:
 
       - name: Push the Docker image
         run: |
-          echo "Pushing image: $IMAGE_NAME"
-          docker push $IMAGE_NAME
+          echo "Pushing image: ${{ env.IMAGE_NAME }}"
+          docker push ${{ env.IMAGE_NAME }}
+          echo "Successfully pushed ${{ env.IMAGE_NAME }}"
