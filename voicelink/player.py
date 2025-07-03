@@ -302,9 +302,9 @@ class Player(VoiceProtocol):
     def build_embed(self, current_track: Track = None):
         """Builds an embed based on the current track state."""
         controller = self.settings.get("default_controller", func.settings.controller).get("embeds", {})
-        raw = controller.get("active" if current_track else "inactive", {})
+        embed_form = controller.get("active" if current_track else "inactive", {})
         
-        return build_embed(raw, self._ph)
+        return build_embed(embed_form, self._ph)
 
     async def send(self, method: RequestMethod, query: str = None, data: Union[Dict, str] = {}) -> Dict:
         """Sends an HTTP request to the node with the given method, query, and data."""
