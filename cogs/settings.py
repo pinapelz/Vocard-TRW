@@ -241,6 +241,17 @@ class Settings(commands.Cog, name="settings"):
 
         await update_settings(ctx.guild.id, {"$set": {'controller_msg': toggle}})
         await send(ctx, 'toggleControllerMsg', await get_lang(ctx.guild.id, "enabled" if toggle else "disabled"))
+    
+    @settings.command(name="silentmsg", aliases=get_aliases("silentmsg"))
+    @commands.has_permissions(manage_guild=True)
+    @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
+    async def silentmsg(self, ctx: commands.Context):
+        "Toggle silent messaging to send discreet messages without alerting recipients."
+        settings = await get_settings(ctx.guild.id)
+        toggle = not settings.get('silentMsg', False)
+
+        await update_settings(ctx.guild.id, {"$set": {'silentMsg': toggle}})
+        await send(ctx, 'toggleSilentMsg', await get_lang(ctx.guild.id, "enabled" if toggle else "disabled"))
 
     @settings.command(name="stageannounce", aliases=get_aliases("stageannounce"))
     @commands.has_permissions(manage_guild=True)
