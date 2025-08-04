@@ -15,7 +15,7 @@
     "changedLanguage": "Erfolgreich auf das Sprachpaket `{0}` geändert.",
     "setPrefix": "Erledigt! Mein Präfix ist jetzt `{0}` auf deinem Server. Versuche, `{1}ping` auszuführen, um es zu testen.",
     "setDJ": "Stelle den DJ auf {0}.",
-    "setqueue": "Stelle den Warteschlangenmodus auf `{0}` ein.",
+    "setQueue": "Stelle den Warteschlangenmodus auf `{0}` ein.",
     "247": "Der 24/7-Modus wurde erfolgreich `{0}`.",
     "bypassVote": "Das Abstimmungssystem wurde `{0}`",
     "setVolume": "Stelle die Lautstärke auf `{0}`%.",

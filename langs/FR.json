@@ -15,7 +15,7 @@
     "changedLanguage": "Changement réussi vers le pack de langue `{0}`.",
     "setPrefix": "C'est fait ! Mon préfixe dans votre serveur est désormais `{0}`. Essayez de lancer `{1}ping` pour tester.",
     "setDJ": "Le DJ a été défini sur {0}.",
-    "setqueue": "Le mode file d'attente est défini sur `{0}`.",
+    "setQueue": "Le mode file d'attente est défini sur `{0}`.",
     "247": "Le mode 24/7 est maintenant `{0}`.",
     "bypassVote": "Vous avez le système de vote `{0}`.",
     "setVolume": "Le volume est réglé à `{0}`%",

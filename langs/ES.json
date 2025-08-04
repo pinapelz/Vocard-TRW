@@ -15,7 +15,7 @@
     "changedLanguage": "Cambiado con éxito al paquete de idioma `{0}`.",
     "setPrefix": "¡Listo! Mi prefijo en tu servidor ahora es `{0}`. Intenta ejecutar `{1}ping` para probarlo.",
     "setDJ": "Establecer el DJ a {0}.",
-    "setqueue": "Establecer el modo de cola en `{0}`.",
+    "setQueue": "Establecer el modo de cola en `{0}`.",
     "247": "Ahora tienes `{0}` modo 24/7.",
     "bypassVote": "Ahora tienes `{0}` sistema de votación.",
     "setVolume": "Ajustar el volumen a `{0}`%",

@@ -15,7 +15,7 @@
     "changedLanguage": "Pomyślnie zmieniono pakiet językowy na: `{0}` .",
     "setPrefix": "Gotowe! Mój prefix na tym serwerze to teraz `{0}`. Spróbuj uruchomić polecenie `{1}ping`, aby go przetestować.",
     "setDJ": "Ustawiono DJ jako {0}.",
-    "setqueue": "Zmienionio tryb kolejki na `{0}`.",
+    "setQueue": "Zmienionio tryb kolejki na `{0}`.",
     "247": "Tryb 24/7: `{0}`",
     "bypassVote": "System głosowania: `{0}`",
     "setVolume": "Ustawiono głośność na `{0}`%",

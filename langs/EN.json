@@ -15,7 +15,7 @@
     "changedLanguage": "Successfully changed to `{0}` language pack.",
     "setPrefix": "Done! My prefix in your server is now `{0}`. Try running `{1}ping` to test it out.",
     "setDJ": "Set the dj to {0}.",
-    "setqueue": "Set queue mode to `{0}`.",
+    "setQueue": "Set queue mode to `{0}`.",
     "247": "24/7 mode is now `{0}`.",
     "bypassVote": "You have `{0}` voting system.",
     "setVolume": "Set the volume to `{0}`%",

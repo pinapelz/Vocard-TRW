@@ -223,7 +223,7 @@ async def send(
         "embed": embed,
         "ephemeral": ephemeral,
         "allowed_mentions": ALLOWED_MENTIONS,
-        "silent": settings.get("silentMsg", False),
+        "silent": settings.get("silent_msg", False),
     }
     
     if "delete_after" in send_func.__code__.co_varnames:
