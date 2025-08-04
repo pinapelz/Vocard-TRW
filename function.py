@@ -218,17 +218,17 @@ async def send(
 
     # Check settings for delete_after duration
     settings = await get_settings(ctx.guild.id)
-    if settings and ctx.channel.id == settings.get("music_request_channel", {}).get("text_channel_id"):
-        delete_after = 10
-
     send_kwargs = {
         "content": text,
         "embed": embed,
         "ephemeral": ephemeral,
-        "allowed_mentions": ALLOWED_MENTIONS
+        "allowed_mentions": ALLOWED_MENTIONS,
+        "silent": settings.get("silent_msg", False),
     }
     
     if "delete_after" in send_func.__code__.co_varnames:
+        if settings and ctx.channel.id == settings.get("music_request_channel", {}).get("text_channel_id"):
+            delete_after = 10
         send_kwargs["delete_after"] = delete_after
     
     if view:

@@ -223,3 +223,8 @@ class FairQueue(Queue):
 
         self.put_at_index(lastIndex, item)
         return lastIndex
+    
+QUEUE_TYPES: Dict[str, Queue] = {
+    "queue": Queue,
+    "fairqueue": FairQueue
+}

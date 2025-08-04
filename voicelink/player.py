@@ -51,8 +51,8 @@ from .exceptions import VoicelinkException, FilterInvalidArgument, TrackInvalidP
 from .filters import Filter, Filters
 from .objects import Track, Playlist
 from .pool import Node, NodePool
-from .queue import Queue, FairQueue
 from .placeholders import Placeholders, build_embed
+from .queue import Queue, QUEUE_TYPES
 from random import shuffle, choice
 
 async def connect_channel(ctx: Union[commands.Context, Interaction], channel: VoiceChannel = None):
@@ -115,7 +115,10 @@ class Player(VoiceProtocol):
         self.settings: dict = settings
         self.joinTime: float = round(time.time())
         self._volume: int = self.settings.get('volume', 100)
-        self.queue: Queue = eval(self.settings.get("queueType", "Queue"))(self.settings.get("maxQueue", func.settings.max_queue), self.settings.get("duplicateTrack", True), self.get_msg)
+        self.queue: Queue = QUEUE_TYPES.get(self.settings.get("queue_type", "queue").lower())(
+            self.settings.get("max_queue", func.settings.max_queue),
+            self.settings.get("duplicate_track", True), self.get_msg
+        )
 
         self._node = NodePool.get_node()
         self._current: Optional[Track] = None
@@ -263,7 +266,7 @@ class Player(VoiceProtocol):
 
         If `leave` is True and the channel has three members, the requirement adjusts to 2 votes.
         """
-        if self.settings.get('votedisable'):
+        if self.settings.get('disabled_vote'):
             return 0
 
         required = ceil((len(self.channel.members) - 1) / 2.5)
@@ -460,11 +463,11 @@ class Player(VoiceProtocol):
                 
                 # Send a new controller message if none exists
                 if not self.controller:
-                    self.controller = await self.context.channel.send(embed=embed, view=view)
+                    self.controller = await func.send(self.context, content=embed, view=view)
 
             elif not await self.is_position_fresh():
                 await self.controller.delete()
-                self.controller = await self.context.channel.send(embed=embed, view=view)
+                self.controller = await func.send(self.context, content=embed, view=view)
 
             else:
                 await self.controller.edit(embed=embed, view=view)
@@ -493,8 +496,8 @@ class Player(VoiceProtocol):
         """Cleans up the player and associated resources."""
         try:
             await func.update_settings(self.guild.id, {"$set": {
-                "lastActice": (timeNow := round(time.time())), 
-                "playTime": round(self.settings.get("playTime", 0) + ((timeNow - self.joinTime) / 60), 2)
+                "last_active": (timeNow := round(time.time())), 
+                "played_time": round(self.settings.get("played_time", 0) + ((timeNow - self.joinTime) / 60), 2)
             }})
             
             if self.is_ipc_connected:
@@ -711,7 +714,7 @@ class Player(VoiceProtocol):
             await self.send_ws({
                 "op": "shuffleTrack",
                 "tracks": [{"trackId": track.track_id, "requesterId": str(track.requester.id)} for track in replacement],
-                "queueType": queue_type
+                "queue_type": queue_type
             }, requester)
         
         self._logger.debug(f"Player in {self.guild.name}({self.guild.id}) has been shuffled the queue.")
@@ -785,7 +788,7 @@ class Player(VoiceProtocol):
         if self.is_ipc_connected:
             await self.send_ws({
                 "op": "clearQueue",
-                "queueType": queue_type
+                "queue_type": queue_type
             }, requester)
 
     async def remove_filter(self, filter_tag: str, requester: Member = None, fast_apply: bool = False) -> Filters:
