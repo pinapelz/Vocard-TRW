@@ -463,11 +463,11 @@ class Player(VoiceProtocol):
                 
                 # Send a new controller message if none exists
                 if not self.controller:
-                    self.controller = await self.context.channel.send(embed=embed, view=view)
+                    self.controller = await func.send(self.context, content=embed, view=view)
 
             elif not await self.is_position_fresh():
                 await self.controller.delete()
-                self.controller = await self.context.channel.send(embed=embed, view=view)
+                self.controller = await func.send(self.context, content=embed, view=view)
 
             else:
                 await self.controller.edit(embed=embed, view=view)
