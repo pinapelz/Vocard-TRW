@@ -93,7 +93,7 @@ class Basic(commands.Cog):
             node = voicelink.NodePool.get_node()
             if not node:
                 return []
-            tracks: list[voicelink.Track] = await node.get_tracks(current, requester=interaction.user, search_type=SearchType.SPOTIFY)
+            tracks: list[voicelink.Track] = await node.get_tracks(current, requester=interaction.user)
             return [app_commands.Choice(name=truncate_string(f"🎵 {track.author} - {track.title}", 100), value=truncate_string(f"{track.author} - {track.title}", 100)) for track in tracks] if tracks else []
         
         history = {track["identifier"]: track for track_id in reversed(await get_user(interaction.user.id, "history")) if (track := voicelink.decode(track_id))["uri"]}

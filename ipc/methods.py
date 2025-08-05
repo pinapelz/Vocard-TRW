@@ -12,12 +12,14 @@ RATELIMIT_COUNTER: Dict[int, Dict[str, float]] = {}
 SCOPES = {
     "prefix": str,
     "lang": str,
-    "queueType": str,
+    "queue_type": str,
     "dj": int,
     "controller": bool,
+    "controller_msg": bool,
     "24/7": bool,
-    "votedisable": bool,
-    "duplicateTrack": bool,
+    "disabled_vote": bool,
+    "duplicate_track": bool,
+    "silent_msg": bool,
     "default_controller": dict,
     "stage_announce_template": str
 }
@@ -314,7 +316,7 @@ async def toggleAutoplay(player: Player, member: Member, data: Dict) -> Dict:
     return {
         "op": "toggleAutoplay",
         "status": check,
-        "guildId": player.guild.id,
+        "guildId": str(player.guild.id),
         "requesterId": str(member.id)
     }
 
