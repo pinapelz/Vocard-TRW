@@ -788,7 +788,7 @@ class Player(VoiceProtocol):
         if self.is_ipc_connected:
             await self.send_ws({
                 "op": "clearQueue",
-                "queue_type": queue_type
+                "queueType": queue_type
             }, requester)
 
     async def remove_filter(self, filter_tag: str, requester: Member = None, fast_apply: bool = False) -> Filters:

@@ -211,8 +211,9 @@ async def send(
         
     # Determine the sending function
     send_func = (
-        ctx.send if isinstance(ctx, commands.Context) else 
-        ctx.followup.send if ctx.response.is_done() else 
+        ctx.send if isinstance(ctx, commands.Context) else
+        ctx.channel.send if isinstance(ctx, TempCtx) else
+        ctx.followup.send if ctx.response.is_done() else
         ctx.response.send_message
     )
 
@@ -221,7 +222,6 @@ async def send(
     send_kwargs = {
         "content": text,
         "embed": embed,
-        "ephemeral": ephemeral,
         "allowed_mentions": ALLOWED_MENTIONS,
         "silent": settings.get("silent_msg", False),
     }
@@ -231,6 +231,9 @@ async def send(
             delete_after = 10
         send_kwargs["delete_after"] = delete_after
     
+    if "ephemeral" in send_func.__code__.co_varnames:
+        send_kwargs["ephemeral"] = ephemeral
+
     if view:
         send_kwargs["view"] = view
 
