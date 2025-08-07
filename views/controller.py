@@ -29,23 +29,49 @@ import views
 import function as func
 
 from discord.ext import commands
-from typing import Dict, Type
+from typing import Optional, Dict, Type, Union, Any
 
 def key(interaction: discord.Interaction):
     return interaction.user
-
+    
 class ControlButton(discord.ui.Button):
     def __init__(
         self,
-        player,
-        label: str = None,
+        player: "voicelink.Player",
+        btn_data: Dict[str, Any],
+        default_states: Optional[str] = None,
         **kwargs
     ):
-        self.player: voicelink.Player = player
-        
-        self.disable_button_text: bool = func.settings.controller.get("disableButtonText", False)
-        super().__init__(label=self.player.get_msg(label) if label and not self.disable_button_text else None, **kwargs)
+        super().__init__(**kwargs)
 
+        self.player: voicelink.Player = player
+        self.btn_data: Dict[str, Any] = btn_data
+        self.change_states(default_states)
+
+    def _get_button_config(self, states: Optional[str]) -> Dict[str, Any]:
+        """Retrieve button configuration based on states."""
+        if states and "states" in self.btn_data:
+            return self.btn_data["states"].get(states, {})
+        return self.btn_data
+
+    def _get_button_style(self, style_name: Optional[str]) -> discord.ButtonStyle:
+        """Retrieve the corresponding ButtonStyle based on the provided style name."""
+        if style_name:
+            for name, btn_style in discord.ButtonStyle.__members__.items():
+                if name.lower() == style_name.lower():
+                    return btn_style
+            
+        return discord.ButtonStyle.gray
+    
+    def change_states(self, states: str) -> None:
+        """Change the button's emoji and label based on the provided state."""
+        states = states.lower() if states else None
+        state_config = self._get_button_config(states)
+        if state_config:
+            self.emoji = state_config.get("emoji") or None
+            self.style = self._get_button_style(state_config.get("style"))
+            self.label = self.player._ph.replace(state_config.get("label"), {})
+    
     async def send(self, interaction: discord.Interaction, key: str, *params, view: discord.ui.View = None, ephemeral: bool = False) -> None:
         stay = self.player.settings.get("controller_msg", True)
         return await func.send(
@@ -58,8 +84,6 @@ class ControlButton(discord.ui.Button):
 class Back(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            emoji="⏮️",
-            label="buttonBack",
             disabled=False if kwargs["player"].queue.history() or not kwargs["player"].current else True,
             **kwargs
         )
@@ -87,21 +111,20 @@ class Back(ControlButton):
         if self.player.queue._repeat.mode == voicelink.LoopType.TRACK:
             await self.player.set_repeat(voicelink.LoopType.OFF)
         
-class Resume(ControlButton):
+class PlayPause(ControlButton):
     def __init__(self, **kwargs):
+        self.playing_status = lambda player, reverse=False: "pause" if (player.is_paused and not reverse) or (not player.is_paused and reverse) else "resume"
+
         super().__init__(
-            emoji="⏸️",
-            label="buttonPause",
+            default_states="pause",
             disabled=kwargs["player"].current is None,
             **kwargs
         )
     
     async def callback(self, interaction: discord.Interaction):
         is_paused = not self.player.is_paused
-        vote_type = "pause" if is_paused else "resume"
+        vote_type = self.playing_status(self.player, True)
         votes = getattr(self.player, f"{vote_type}_votes")
-        emoji = "▶️" if is_paused else "⏸️"
-        button = "buttonResume" if is_paused else "buttonPause"
 
         if not self.player.is_privileged(interaction.user):
             if interaction.user in votes:
@@ -111,19 +134,13 @@ class Resume(ControlButton):
                 if len(votes) < (required := self.player.required()):
                     return await self.send(interaction, f"{vote_type}Vote", interaction.user, len(votes), required)
 
-        self.emoji = emoji
-        if not self.disable_button_text:
-            self.label = await func.get_lang(interaction.guild.id, button)
+        self.change_states(self.playing_status(self.player))
         await self.player.set_pause(is_paused, interaction.user)
         await interaction.response.edit_message(view=self.view)
 
 class Skip(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="⏭️",
-            label="buttonSkip",
-            **kwargs
-        )
+        super().__init__(**kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_playing:
@@ -148,11 +165,7 @@ class Skip(ControlButton):
 
 class Stop(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="⏹️",
-            label="buttonLeave",
-            **kwargs
-        )
+        super().__init__(**kwargs)
 
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
@@ -168,13 +181,9 @@ class Stop(ControlButton):
         await self.send(interaction, "left", interaction.user)
         await self.player.teardown()
 
-class Add(ControlButton):
+class AddFav(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="❤️",
-            disabled=kwargs["player"].current is None,
-            **kwargs
-        )
+        super().__init__(disabled=kwargs["player"].current is None, **kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         track = self.player.current
@@ -197,42 +206,23 @@ class Add(ControlButton):
 
 class Loop(ControlButton):
     def __init__(self, **kwargs):
-        self.btn_emojis: dict[str, str] = {
-            "off": "🔁",
-            "track": "🔂",
-            "queue": "🔁"
-        }
-        
         super().__init__(
-            emoji=self.get_next_loop_emoji(kwargs["player"]),
-            label="buttonLoop",
+            default_states=kwargs["player"].queue._repeat.peek_next().name,
             **kwargs
         )
-    
-    def get_next_loop_emoji(self, player) -> str:
-        current_repeat_mode = player.queue.repeat.lower()
-        if current_repeat_mode not in self.btn_emojis:
-            raise ValueError(f"Invalid repeat mode: {current_repeat_mode}")
-        
-        return self.btn_emojis[current_repeat_mode]
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
             return await self.send(interaction, 'missingPerms_mode', ephemeral=True)
 
-        mode = await self.player.set_repeat(requester=interaction.user)
-        self.emoji = self.get_next_loop_emoji(self.player)
-        
+        await self.player.set_repeat(requester=interaction.user)
+        self.change_states(self.player.queue._repeat.peek_next().name)
+
         await interaction.response.edit_message(view=self.view)
-        await self.send(interaction, 'repeat', mode.name.capitalize())
         
 class VolumeUp(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="🔊",
-            label="buttonVolumeUp",
-            **kwargs
-        )
+        super().__init__(**kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
@@ -245,11 +235,7 @@ class VolumeUp(ControlButton):
 
 class VolumeDown(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="🔉",
-            label="buttonVolumeDown",
-            **kwargs
-        )
+        super().__init__(**kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
@@ -263,8 +249,7 @@ class VolumeDown(ControlButton):
 class VolumeMute(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            emoji="🔇" if kwargs["player"].volume else "🔈",
-            label="buttonVolumeMute" if kwargs["player"].volume else "buttonVolumeUnmute",
+            default_states="muted" if kwargs["player"].volume else "mute",
             **kwargs
         )
     
@@ -274,20 +259,13 @@ class VolumeMute(ControlButton):
 
         is_muted = self.player.volume != 0
         value = 0 if is_muted else self.player.settings.get("volume", 100)
-        self.emoji = "🔈" if is_muted else "🔇"
-        if not self.disable_button_text:
-            self.label = await func.get_lang(interaction.guild_id, "buttonVolumeUnmute" if is_muted else "buttonVolumeMute")
-
+        self.change_states("muted" if value else "mute")
         await self.player.set_volume(value, interaction.user)
         await interaction.response.edit_message(view=self.view)
 
 class AutoPlay(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="💡",
-            label="buttonAutoPlay",
-            **kwargs
-        )
+        super().__init__(**kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
@@ -302,11 +280,7 @@ class AutoPlay(ControlButton):
 
 class Shuffle(ControlButton):
     def __init__(self, **kwargs):
-        super().__init__(
-            emoji="🔀",
-            label="buttonShuffle",
-            **kwargs
-        )
+        super().__init__(**kwargs)
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
@@ -325,8 +299,6 @@ class Shuffle(ControlButton):
 class Forward(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            emoji="⏩",
-            label="buttonForward",
             disabled=kwargs["player"].current is None,
             **kwargs
         )
@@ -346,8 +318,6 @@ class Forward(ControlButton):
 class Rewind(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            emoji="⏪",
-            label="buttonRewind",
             disabled=kwargs["player"].current is None,
             **kwargs
         )
@@ -367,8 +337,6 @@ class Rewind(ControlButton):
 class Lyrics(ControlButton):
     def __init__(self, **kwargs):
         super().__init__(
-            emoji="📜",
-            label="buttonLyrics",
             disabled=kwargs["player"].current is None,
             **kwargs
         )
@@ -390,22 +358,25 @@ class Lyrics(ControlButton):
             view.response = await self.send(interaction, view.build_embed(), view=view, ephemeral=True)
 
 class Tracks(discord.ui.Select):
-    def __init__(self, player, style, row):
-
+    def __init__(self, player: "voicelink.Player", btn_data, **kwargs):
         self.player: voicelink.Player = player
+        
+        if player.queue.is_empty:
+            raise ValueError("Player queue is empty, cannot create Tracks row instance.")
         
         options = []
         for index, track in enumerate(self.player.queue.tracks(), start=1):
-            if index > 10:
+            if index > min(max(btn_data.get("max_options", 10), 1), 25):
                 break
             options.append(discord.SelectOption(label=f"{index}. {track.title[:40]}", description=f"{track.author[:30]} · " + ("Live" if track.is_stream else track.formatted_length), emoji=track.emoji))
 
         super().__init__(
-            placeholder=self.player.get_msg("playerDropdown"),
+            placeholder=self.player._ph.replace(btn_data.get("label"), {}),
             options=options,
-            row=row
+            disabled=player.queue.is_empty,
+            **kwargs
         )
-
+    
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
             return await func.send(interaction, "missingPerms_function", ephemeral=True)
@@ -417,7 +388,7 @@ class Tracks(discord.ui.Select):
             await func.send(interaction, "skipped", interaction.user)
 
 class Effects(discord.ui.Select):
-    def __init__(self, player, style, row):
+    def __init__(self, player: "voicelink.Player", btn_data, row):
 
         self.player: voicelink.Player = player
         
@@ -426,11 +397,11 @@ class Effects(discord.ui.Select):
             options.append(discord.SelectOption(label=name.capitalize(), value=name))
 
         super().__init__(
-            placeholder=self.player.get_msg("playerFilter"),
+            placeholder=self.player._ph.replace(btn_data.get("label"), {}),
             options=options,
             row=row
         )
-
+    
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
             return await func.send(interaction, "missingPerms_function", ephemeral=True)
@@ -448,12 +419,12 @@ class Effects(discord.ui.Select):
             await self.player.add_filter(selected_filter, requester=interaction.user)
             await func.send(interaction, "addEffect", selected_filter.tag)
 
-BUTTON_TYPE: Dict[str, Type[ControlButton]] = {
+BUTTON_TYPE: Dict[str, Type[Union[ControlButton, discord.ui.Select]]] = {
     "back": Back,
-    "resume": Resume,
+    "play-pause": PlayPause,
     "skip": Skip,
     "stop": Stop,
-    "add": Add,
+    "add-fav": AddFav,
     "loop": Loop,
     "volumeup": VolumeUp,
     "volumedown": VolumeDown,
@@ -467,30 +438,22 @@ BUTTON_TYPE: Dict[str, Type[ControlButton]] = {
     "effects": Effects
 }
 
-BUTTON_COLORS: Dict[str, discord.ButtonStyle] = {
-    "blue": discord.ButtonStyle.primary,
-    "grey": discord.ButtonStyle.secondary,
-    "red": discord.ButtonStyle.danger,
-    "green": discord.ButtonStyle.success
-}
-
 class InteractiveController(discord.ui.View):
     def __init__(self, player):
         super().__init__(timeout=None)
 
         self.player: voicelink.Player = player
-        for row, btnRow in enumerate(func.settings.controller.get("default_buttons")):
-            for btn in btnRow:
-                color = ""
-                if isinstance(btn, Dict):
-                    color = list(btn.values())[0]
-                    btn = list(btn.keys())[0]
-                btnClass = BUTTON_TYPE.get(btn.lower())
-                style = BUTTON_COLORS.get(color.lower(), BUTTON_COLORS["grey"])
-                if not btnClass or (self.player.queue.is_empty and btn == "tracks"):
+        for row_num, btn_row in enumerate(func.settings.controller.get("buttons")):
+            for btn_name, btn_data in btn_row.items():
+                btn_class = BUTTON_TYPE.get(btn_name.lower())
+                if not btn_class:
                     continue
-                self.add_item(btnClass(player=player, style=style, row=row))
-
+                
+                try:
+                    self.add_item(btn_class(player=player, btn_data=btn_data, row=row_num))
+                except ValueError:
+                    pass
+                
         self.cooldown = commands.CooldownMapping.from_cooldown(2.0, 10.0, key)
             
     async def interaction_check(self, interaction: discord.Interaction):
@@ -510,7 +473,7 @@ class InteractiveController(discord.ui.View):
             await func.send(interaction, "notInChannel", interaction.user.mention, self.player.channel.mention, ephemeral=True)
             return False
 
-    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item):
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item) -> None:
         if isinstance(error, views.ButtonOnCooldown):
             sec = int(error.retry_after)
             await interaction.response.send_message(f"You're on cooldown for {sec} second{'' if sec == 1 else 's'}!", ephemeral=True)
