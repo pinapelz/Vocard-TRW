@@ -305,7 +305,7 @@ async def updatePosition(player: Player, member: Member, data: Dict) -> None:
 
 async def toggleAutoplay(player: Player, member: Member, data: Dict) -> Dict:
     if not player.is_privileged(member):
-        return error_msg(player.get_msg('missingPerms_autoplay'))
+        return error_msg(player.get_msg('missingAutoPlayPerm'))
 
     check = data.get("status", False)
     player.settings['autoplay'] = check

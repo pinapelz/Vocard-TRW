@@ -308,7 +308,7 @@ class Basic(commands.Cog):
             player = await voicelink.connect_channel(ctx)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_function", ephemeral=True)
+            return await send(ctx, "missingFunctionPerm", ephemeral=True)
         
         if ctx.interaction:
             await ctx.interaction.response.defer()
@@ -457,7 +457,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         if not player.current or player.position == 0:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
@@ -621,7 +621,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_mode", ephemeral=True)
+            return await send(ctx, "missingModePerm", ephemeral=True)
 
         await player.set_repeat(LoopType[mode] if mode in LoopType.__members__ else LoopType.OFF, ctx.author)
         await send(ctx, "repeat", mode.capitalize())
@@ -640,7 +640,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_queue", ephemeral=True)
+            return await send(ctx, "missingQueuePerm", ephemeral=True)
 
         await player.clear_queue(queue, ctx.author)
         await send(ctx, "cleared", queue.capitalize())
@@ -659,7 +659,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_queue", ephemeral=True)
+            return await send(ctx, "missingQueuePerm", ephemeral=True)
 
         removed_tracks = await player.remove_track(position1, position2, remove_target=member, requester=ctx.author)
         await send(ctx, "removed", len(removed_tracks.keys()))
@@ -674,7 +674,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         if not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
@@ -695,7 +695,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         if not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
@@ -715,7 +715,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         if not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
@@ -755,7 +755,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         track1, track2 = await player.swap_track(position1, position2, ctx.author)        
         await send(ctx, "swapped", track1.title, track2.title)
@@ -773,7 +773,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
         
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_pos", ephemeral=True)
+            return await send(ctx, "missingPosPerm", ephemeral=True)
 
         moved_track = await player.move_track(target, to, ctx.author)
         await send(ctx, "moved", moved_track, to)
@@ -820,7 +820,7 @@ class Basic(commands.Cog):
             return await send(ctx, "djToMe", ephemeral=True)
 
         if member not in player.channel.members:
-            return await send(ctx, "djnotinchannel", member, ephemeral=True)
+            return await send(ctx, "djNotInChannel", member, ephemeral=True)
 
         player.dj = member
         await send(ctx, "djswap", member)
@@ -834,7 +834,7 @@ class Basic(commands.Cog):
             return await send(ctx, "noPlayer", ephemeral=True)
 
         if not player.is_privileged(ctx.author):
-            return await send(ctx, "missingPerms_autoplay", ephemeral=True)
+            return await send(ctx, "missingAutoPlayPerm", ephemeral=True)
 
         check = not player.settings.get("autoplay", False)
         player.settings['autoplay'] = check
@@ -863,7 +863,7 @@ class Basic(commands.Cog):
         "Test if the bot is alive, and see the delay between your commands and my response."
         player: voicelink.Player = ctx.guild.voice_client
 
-        value = await get_lang(ctx.guild.id, "pingTitle1", "pingfield1", "pingTitle2", "pingfield2")
+        value = await get_lang(ctx.guild.id, "pingTitle1", "pingField1", "pingTitle2", "pingField2")
         
         embed = discord.Embed(color=settings.embed_color)
         embed.add_field(

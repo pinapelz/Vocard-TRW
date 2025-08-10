@@ -35,7 +35,6 @@ load_dotenv()
 
 class Settings:
     def __init__(self, settings: Dict) -> None:
-        print(os.environ)
         self.token: str = settings.get("token") or os.getenv("TOKEN")
         self.client_id: int = int(settings.get("client_id", 0)) or int(os.getenv("CLIENT_ID"))
         self.genius_token: str = settings.get("genius_token") or os.getenv("GENIUS_TOKEN")
