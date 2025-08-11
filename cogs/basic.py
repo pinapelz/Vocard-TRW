@@ -93,8 +93,15 @@ class Basic(commands.Cog):
             node = voicelink.NodePool.get_node()
             if not node:
                 return []
+            
             tracks: list[voicelink.Track] = await node.get_tracks(current, requester=interaction.user)
-            return [app_commands.Choice(name=truncate_string(f"🎵 {track.author} - {track.title}", 100), value=truncate_string(f"{track.author} - {track.title}", 100)) for track in tracks] if tracks else []
+            if not tracks:
+                return []
+            
+            if isinstance(tracks, voicelink.Playlist):
+                tracks = tracks.tracks
+
+            return [app_commands.Choice(name=truncate_string(f"🎵 {track.author} - {track.title}", 100), value=truncate_string(f"{track.author} - {track.title}", 100)) for track in tracks]
         
         history = {track["identifier"]: track for track_id in reversed(await get_user(interaction.user.id, "history")) if (track := voicelink.decode(track_id))["uri"]}
         return [app_commands.Choice(name=truncate_string(f"🕒 {track['author']} - {track['title']}", 100), value=track['uri']) for track in history.values() if len(track['uri']) <= 100][:25]
