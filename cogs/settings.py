@@ -204,7 +204,7 @@ class Settings(commands.Cog, name="settings"):
                 discord.ui.View.from_message(player.controller).stop()
 
         await update_settings(ctx.guild.id, {"$set": {'controller': toggle}})
-        await send(ctx, 'togglecontroller', await get_lang(ctx.guild.id, "enabled" if toggle else "disabled"))
+        await send(ctx, 'toggleController', await get_lang(ctx.guild.id, "enabled" if toggle else "disabled"))
 
     @settings.command(name="duplicatetrack", aliases=get_aliases("duplicatetrack"))
     @commands.has_permissions(manage_guild=True)

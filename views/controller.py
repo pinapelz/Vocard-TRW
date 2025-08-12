@@ -194,10 +194,10 @@ class AddFav(ControlButton):
         user = await func.get_user(interaction.user.id, 'playlist')
         rank, max_p, max_t = func.check_roles()
         if len(user['200']['tracks']) >= max_t:
-            return await self.send(interaction, "playlistlimited", max_t, ephemeral=True)
+            return await self.send(interaction, "playlistLimited", max_t, ephemeral=True)
 
         if track.track_id in user['200']['tracks']:
-            return await self.send(interaction, "playlistrepeated", ephemeral=True)
+            return await self.send(interaction, "playlistRepeated", ephemeral=True)
         respond = await func.update_user(interaction.user.id, {"$push": {'playlist.200.tracks': track.track_id}})
         if respond:
             await self.send(interaction, "playlistAdded", track.title, interaction.user.mention, user['200']['name'], ephemeral=True)
@@ -213,7 +213,7 @@ class Loop(ControlButton):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, 'missingPerms_mode', ephemeral=True)
+            return await self.send(interaction, 'missingModePerm', ephemeral=True)
 
         await self.player.set_repeat(requester=interaction.user)
         self.change_states(self.player.queue._repeat.peek_next().name)
@@ -226,7 +226,7 @@ class VolumeUp(ControlButton):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, "missingPerms_function")
+            return await self.send(interaction, "missingFunctionPerm")
 
         value = value if (value := self.player.volume + 20) <= 150 else 150
         await self.player.set_volume(value, interaction.user)
@@ -239,7 +239,7 @@ class VolumeDown(ControlButton):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, "missingPerms_function")
+            return await self.send(interaction, "missingFunctionPerm")
 
         value = value if (value := self.player.volume - 20) >= 0 else 0
         await self.player.set_volume(value, interaction.user)
@@ -255,7 +255,7 @@ class VolumeMute(ControlButton):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, "missingPerms_function")
+            return await self.send(interaction, "missingFunctionPerm")
 
         is_muted = self.player.volume != 0
         value = 0 if is_muted else self.player.settings.get("volume", 100)
@@ -269,7 +269,7 @@ class AutoPlay(ControlButton):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, "missingPerms_autoplay", ephemeral=True)
+            return await self.send(interaction, "missingAutoPlayPerm", ephemeral=True)
 
         check = not self.player.settings.get("autoplay", False)
         self.player.settings['autoplay'] = check
@@ -305,7 +305,7 @@ class Forward(ControlButton):
         
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, 'missingPerms_pos', ephemeral=True)
+            return await self.send(interaction, 'missingPosPerm', ephemeral=True)
 
         if not self.player.current:
             return await self.send(interaction, 'noTrackPlaying', ephemeral=True)
@@ -324,7 +324,7 @@ class Rewind(ControlButton):
         
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await self.send(interaction, 'missingPerms_pos', ephemeral=True)
+            return await self.send(interaction, 'missingPosPerm', ephemeral=True)
 
         if not self.player.current:
             return await self.send(interaction, 'noTrackPlaying', ephemeral=True)
@@ -379,7 +379,7 @@ class Tracks(discord.ui.Select):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await func.send(interaction, "missingPerms_function", ephemeral=True)
+            return await func.send(interaction, "missingFunctionPerm", ephemeral=True)
         
         self.player.queue.skipto(int(self.values[0].split(". ")[0]))
         await self.player.stop()
@@ -404,7 +404,7 @@ class Effects(discord.ui.Select):
     
     async def callback(self, interaction: discord.Interaction):
         if not self.player.is_privileged(interaction.user):
-            return await func.send(interaction, "missingPerms_function", ephemeral=True)
+            return await func.send(interaction, "missingFunctionPerm", ephemeral=True)
         
         avalibable_filters = voicelink.Filters.get_available_filters()
         if self.values[0] == "None":

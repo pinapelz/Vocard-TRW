@@ -760,7 +760,7 @@ class Player(VoiceProtocol):
         try:
             self._filters.add_filter(filter=filter)
         except FilterTagAlreadyInUse:
-            raise FilterTagAlreadyInUse(self.get_msg("FilterTagAlreadyInUse"))
+            raise FilterTagAlreadyInUse(self.get_msg("filterTagAlreadyInUse"))
         
         payload = self._filters.get_all_payloads()
         await self.send(method=RequestMethod.PATCH, data={"filters": payload})
