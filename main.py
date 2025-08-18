@@ -25,6 +25,7 @@ import discord
 import sys
 import os
 import aiohttp
+import asyncio
 import update
 import logging
 import voicelink
@@ -45,7 +46,7 @@ class Translator(discord.app_commands.Translator):
 
     async def translate(self, string: discord.app_commands.locale_str, locale: discord.Locale, context: discord.app_commands.TranslationContext):
         locale_key = str(locale)
-        
+
         if locale_key in func.LOCAL_LANGS:
             translated_text = func.LOCAL_LANGS[locale_key].get(string.message)
 
@@ -53,9 +54,9 @@ class Translator(discord.app_commands.Translator):
                 missing_translations = func.MISSING_TRANSLATOR.setdefault(locale_key, [])
                 if string.message not in missing_translations:
                     missing_translations.append(string.message)
-            
+
             return translated_text
-        
+
         return None
 
 class Vocard(commands.Bot):
@@ -89,13 +90,13 @@ class Vocard(commands.Bot):
                     elif message.attachments:
                         for attachment in message.attachments:
                             await cmd(ctx, query=attachment.url)
-                    
+
                 except Exception as e:
                     await func.send(ctx, str(e), ephemeral=True)
-                
+
                 finally:
                     return await message.delete()
-            
+
         await self.process_commands(message)
 
     async def connect_db(self) -> None:
@@ -110,19 +111,19 @@ class Vocard(commands.Bot):
         except Exception as e:
             func.logger.error("Not able to connect MongoDB! Reason:", exc_info=e)
             exit()
-        
+
         func.SETTINGS_DB = func.MONGO_DB[db_name]["Settings"]
         func.USERS_DB = func.MONGO_DB[db_name]["Users"]
 
     async def setup_hook(self) -> None:
         func.langs_setup()
-        
+
         # Connecting to MongoDB
         await self.connect_db()
 
         # Set translator
         await self.tree.set_translator(Translator())
-        
+
         # Loading all the module in `cogs` folder
         for module in os.listdir(func.ROOT_DIR + '/cogs'):
             if module.endswith('.py'):
@@ -139,11 +140,62 @@ class Vocard(commands.Bot):
             except Exception as e:
                 func.logger.error(f"Cannot connected to dashboard! - Reason: {e}")
 
+        # Smart command sync strategy
+        await self._smart_command_sync()
+
+        # Update version tracking
         if not func.settings.version or func.settings.version != update.__version__:
-            await self.tree.sync()
             func.update_json("settings.json", new_data={"version": update.__version__})
             for locale_key, values in func.MISSING_TRANSLATOR.items():
                 func.logger.warning(f'Missing translation for "{", ".join(values)}" in "{locale_key}"')
+
+    async def _smart_command_sync(self):
+        """Production-ready command sync with intelligent error handling"""
+        try:
+            # Method 1: Try normal sync first
+            await self.tree.sync()
+            func.logger.info("Commands synced successfully")
+
+        except discord.HTTPException as e:
+            if "Entry Point command" in str(e) or e.status == 400:
+                func.logger.warning("Command sync conflict detected, attempting resolution...")
+                await self._resolve_command_conflicts()
+            else:
+                func.logger.error(f"Command sync failed: {e}")
+                raise
+
+    async def _resolve_command_conflicts(self):
+        """Clean resolution of command conflicts"""
+        try:
+            # Get application info
+            app_info = await self.application_info()
+
+            # Use Discord's bulk update endpoint to clear all commands
+            url = f"https://discord.com/api/v10/applications/{app_info.id}/commands"
+            headers = {"Authorization": f"Bot {func.settings.token}"}
+
+            async with aiohttp.ClientSession() as session:
+                # Send empty array to clear all commands
+                async with session.put(url, json=[], headers=headers) as resp:
+                    if resp.status == 200:
+                        func.logger.info("Cleared all global commands")
+
+                        # Wait for Discord to process the change
+                        await asyncio.sleep(2)
+
+                        # Clear local command tree and resync
+                        self.tree.clear_commands(guild=None)
+                        await self.tree.sync()
+                        func.logger.info("Commands resynced after conflict resolution")
+
+                    else:
+                        func.logger.error(f"Failed to clear commands: {resp.status}")
+                        raise discord.HTTPException(resp, "Failed to resolve command conflicts")
+
+        except Exception as e:
+            func.logger.error(f"Error resolving command conflicts: {e}")
+            raise
+
 
     async def on_ready(self):
         func.logger.info("------------------")
@@ -162,7 +214,7 @@ class Vocard(commands.Bot):
         error = getattr(exception, 'original', exception)
         if ctx.interaction:
             error = getattr(error, 'original', error)
-            
+
         if isinstance(error, (commands.CommandNotFound, aiohttp.client_exceptions.ClientOSError, discord.errors.NotFound)):
             return
 
@@ -184,7 +236,7 @@ class Vocard(commands.Bot):
         elif not issubclass(error.__class__, voicelink.VoicelinkException):
             error = await func.get_lang(ctx.guild.id, "unknownException") + func.settings.invite_link
             func.logger.error(f"An unexpected error occurred in the {ctx.command.name} command on the {ctx.guild.name}({ctx.guild.id}).", exc_info=exception)
-            
+
         try:
             return await ctx.reply(error, ephemeral=True)
         except:
@@ -225,7 +277,7 @@ if (LOG_FILE := LOG_SETTINGS.get("file", {})).get("enable", True):
 for log_name, log_level in LOG_SETTINGS.get("level", {}).items():
     _logger = logging.getLogger(log_name)
     _logger.setLevel(log_level)
-        
+
 # Setup the bot object
 intents = discord.Intents.default()
 intents.message_content = False if func.settings.bot_prefix is None else True
