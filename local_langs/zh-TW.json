@@ -229,5 +229,7 @@
     "dj": "dj",
     "247": "247",
     "stageannounce": "舞台公告",
-    "Soundcloud": "Soundcloud"
+    "Soundcloud": "Soundcloud",
+    "Fairqueue": "公平隊列",
+    "togglecontroller": "切換控制器"
 }
