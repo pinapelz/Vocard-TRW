@@ -98,8 +98,6 @@ services:
         depends_on:
             lavalink:
                 condition: service_healthy
-            # vocard-dashboard:
-            #     condition: service_healthy
             vocard-db:
                 condition: service_healthy
 
