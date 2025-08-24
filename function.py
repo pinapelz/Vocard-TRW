@@ -238,7 +238,15 @@ async def send(
         send_kwargs["view"] = view
 
     # Send the message or embed
-    return await send_func(**send_kwargs)
+    message = await send_func(**send_kwargs)
+
+    if isinstance(message, discord.InteractionCallbackResponse):
+        message = message.resource
+    
+    if isinstance(message, (discord.WebhookMessage, discord.InteractionMessage)):
+        message = await message.fetch()
+
+    return message
 
 async def update_db(db: AsyncIOMotorCollection, tempStore: dict, filter: dict, data: dict) -> bool:
     for mode, action in data.items():
