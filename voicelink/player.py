@@ -455,19 +455,19 @@ class Player(VoiceProtocol):
                 if request_channel_data := self.settings.get("music_request_channel"):
                     channel = self.bot.get_channel(request_channel_data.get("text_channel_id"))
                     if channel:
-                        self.controller = channel.get_partial_message(request_channel_data.get("controller_msg_id"))
                         try:
+                            self.controller = await channel.fetch_message(request_channel_data.get("controller_msg_id"))
                             await self.controller.edit(embed=embed, view=view)
                         except errors.NotFound:
                             self.controller = None
                 
                 # Send a new controller message if none exists
                 if not self.controller:
-                    self.controller = await func.send(self.context, content=embed, view=view)
+                    self.controller = await func.send(self.context, content=embed, view=view, requires_fetch=True)
 
             elif not await self.is_position_fresh():
                 await self.controller.delete()
-                self.controller = await func.send(self.context, content=embed, view=view)
+                self.controller = await func.send(self.context, content=embed, view=view, requires_fetch=True)
 
             else:
                 await self.controller.edit(embed=embed, view=view)

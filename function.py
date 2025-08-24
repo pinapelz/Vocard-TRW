@@ -192,7 +192,8 @@ async def send(
     *params,
     view: discord.ui.View = None,
     delete_after: float = None,
-    ephemeral: bool = False
+    ephemeral: bool = False,
+    requires_fetch: bool = False
 ) -> Optional[discord.Message]:
     if content is None:
         content = "No content provided."
@@ -243,7 +244,7 @@ async def send(
     if isinstance(message, discord.InteractionCallbackResponse):
         message = message.resource
     
-    if isinstance(message, (discord.WebhookMessage, discord.InteractionMessage)):
+    if requires_fetch and isinstance(message, (discord.WebhookMessage, discord.InteractionMessage)):
         message = await message.fetch()
 
     return message

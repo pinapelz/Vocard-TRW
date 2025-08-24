@@ -193,10 +193,16 @@ class Vocard(commands.Bot):
 
 class CommandCheck(discord.app_commands.CommandTree):
     async def interaction_check(self, interaction: discord.Interaction, /) -> bool:
-        if not interaction.guild:
-            await interaction.response.send_message("This command can only be used in guilds!")
-            return False
+        if interaction.type == discord.InteractionType.application_command:
+            if not interaction.guild:
+                await interaction.response.send_message("This command can only be used in guilds!")
+                return False
 
+            channel_perm = interaction.channel.permissions_for(interaction.guild.me)
+            if not channel_perm.read_messages or not channel_perm.send_messages:
+                await interaction.response.send_message("I don't have permission to read or send messages in this channel.")
+                return False
+            
         return True
 
 async def get_prefix(bot: commands.Bot, message: discord.Message) -> str:
