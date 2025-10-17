@@ -29,12 +29,15 @@ import update
 import logging
 import voicelink
 import function as func
+import certifi
 
 from discord.ext import commands
 from ipc import IPCClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from logging.handlers import TimedRotatingFileHandler
 from addons import Settings
+
+ca = certifi.where()
 
 class Translator(discord.app_commands.Translator):
     async def load(self):
@@ -103,7 +106,7 @@ class Vocard(commands.Bot):
             raise Exception("MONGODB_NAME and MONGODB_URL can't not be empty in settings.json")
 
         try:
-            func.MONGO_DB = AsyncIOMotorClient(host=db_url)
+            func.MONGO_DB = AsyncIOMotorClient(host=db_url, tlscafile=ca)
             await func.MONGO_DB.server_info()
             func.logger.info(f"Successfully connected to [{db_name}] MongoDB!")
 
@@ -202,7 +205,7 @@ class CommandCheck(discord.app_commands.CommandTree):
             if not channel_perm.read_messages or not channel_perm.send_messages:
                 await interaction.response.send_message("I don't have permission to read or send messages in this channel.")
                 return False
-            
+
         return True
 
 async def get_prefix(bot: commands.Bot, message: discord.Message) -> str:
