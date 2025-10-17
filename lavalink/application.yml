@@ -75,7 +75,7 @@ plugins:
       musicKitKey: |
         -----BEGIN PRIVATE KEY-----
         your key
-        -----END PRIVATE KEY-----      
+        -----END PRIVATE KEY-----
       playlistLoadLimit: 6 # The number of pages at 300 tracks each
       albumLoadLimit: 6 # The number of pages at 300 tracks each
     deezer:

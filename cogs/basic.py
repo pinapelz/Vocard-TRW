@@ -52,7 +52,7 @@ async def nowplay(ctx: commands.Context, player: voicelink.Player):
 
     texts = await get_lang(ctx.guild.id, "nowplayingDesc", "nowplayingField", "nowplayingLink")
     upnext = "\n".join(f"`{index}.` `[{track.formatted_length}]` [{truncate_string(track.title)}]({track.uri})" for index, track in enumerate(player.queue.tracks()[:2], start=2))
-    
+
     embed = discord.Embed(description=texts[0].format(track.title), color=settings.embed_color)
     embed.set_author(
         name=track.requester.display_name,
@@ -93,19 +93,19 @@ class Basic(commands.Cog):
             node = voicelink.NodePool.get_node()
             if not node:
                 return []
-            
+
             tracks: list[voicelink.Track] = await node.get_tracks(current, requester=interaction.user)
             if not tracks:
                 return []
-            
+
             if isinstance(tracks, voicelink.Playlist):
                 tracks = tracks.tracks
 
             return [app_commands.Choice(name=truncate_string(f"🎵 {track.author} - {track.title}", 100), value=truncate_string(f"{track.author} - {track.title}", 100)) for track in tracks]
-        
+
         history = {track["identifier"]: track for track_id in reversed(await get_user(interaction.user.id, "history")) if (track := voicelink.decode(track_id))["uri"]}
         return [app_commands.Choice(name=truncate_string(f"🕒 {track['author']} - {track['title']}", 100), value=track['uri']) for track in history.values() if len(track['uri']) <= 100][:25]
-            
+
     @commands.hybrid_command(name="connect", aliases=get_aliases("connect"))
     @app_commands.describe(channel="Provide a channel to connect.")
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
@@ -117,7 +117,7 @@ class Basic(commands.Cog):
             return await send(ctx, "alreadyConnected")
 
         await send(ctx, 'connect', player.channel)
-                
+
     @commands.hybrid_command(name="play", aliases=get_aliases("play"))
     @app_commands.describe(
         query="Input a query or a searchable link.",
@@ -162,7 +162,7 @@ class Basic(commands.Cog):
         finally:
             if not player.is_playing:
                 await player.do_next()
-    
+
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
     async def _play(self, interaction: discord.Interaction, message: discord.Message):
         query = ""
@@ -232,7 +232,7 @@ class Basic(commands.Cog):
 
         if url(query):
             return await send(ctx, "noLinkSupport", ephemeral=True)
-        
+
         search_type: SearchType = SearchType.match(platform) or SearchType.YOUTUBE
         tracks = await player.get_tracks(query=query, requester=ctx.author, search_type=search_type)
         if not tracks:
@@ -272,14 +272,14 @@ class Basic(commands.Cog):
 
         if not player.is_user_join(ctx.author):
             return await send(ctx, "notInChannel", ctx.author.mention, player.channel.mention, ephemeral=True)
-        
+
         if ctx.interaction:
             await ctx.interaction.response.defer()
 
         tracks = await player.get_tracks(query, requester=ctx.author)
         if not tracks:
             return await send(ctx, "noTrackFound")
-        
+
         try:
             if isinstance(tracks, voicelink.Playlist):
                 index = await player.add_track(tracks.tracks, start_time=format_time(start), end_time=format_time(end), at_front=True)
@@ -316,14 +316,14 @@ class Basic(commands.Cog):
 
         if not player.is_privileged(ctx.author):
             return await send(ctx, "missingFunctionPerm", ephemeral=True)
-        
+
         if ctx.interaction:
             await ctx.interaction.response.defer()
-            
+
         tracks = await player.get_tracks(query, requester=ctx.author)
         if not tracks:
             return await send(ctx, "noTrackFound")
-        
+
         try:
             if isinstance(tracks, voicelink.Playlist):
                 index = await player.add_track(tracks.tracks, start_time=format_time(start), end_time=format_time(end), at_front=True)
@@ -342,7 +342,7 @@ class Basic(commands.Cog):
         finally:
             if player.queue._repeat.mode == voicelink.LoopType.TRACK:
                 await player.set_repeat(voicelink.LoopType.OFF)
-                
+
             await player.stop() if player.is_playing else await player.do_next()
 
     @commands.hybrid_command(name="pause", aliases=get_aliases("pause"))
@@ -359,7 +359,7 @@ class Basic(commands.Cog):
         if not player.is_privileged(ctx.author):
             if ctx.author in player.pause_votes:
                 return await send(ctx, "voted", ephemeral=True)
-            
+
             player.pause_votes.add(ctx.author)
             if len(player.pause_votes) < (required := player.required()):
                 return await send(ctx, "pauseVote", ctx.author, len(player.pause_votes), required)
@@ -381,7 +381,7 @@ class Basic(commands.Cog):
         if not player.is_privileged(ctx.author):
             if ctx.author in player.resume_votes:
                 return await send(ctx, "voted", ephemeral=True)
-            
+
             player.resume_votes.add(ctx.author)
             if len(player.resume_votes) < (required := player.required()):
                 return await send(ctx, "resumeVote", ctx.author, len(player.resume_votes), required)
@@ -400,7 +400,7 @@ class Basic(commands.Cog):
 
         if not player.node._available:
             return await send(ctx, "nodeReconnect")
-        
+
         if not player.is_playing:
             return await send(ctx, "skipError", ephemeral=True)
 
@@ -420,7 +420,7 @@ class Basic(commands.Cog):
         await send(ctx, "skipped", ctx.author)
         if player.queue._repeat.mode == voicelink.LoopType.TRACK:
             await player.set_repeat(voicelink.LoopType.OFF)
-            
+
         await player.stop()
 
     @commands.hybrid_command(name="back", aliases=get_aliases("back"))
@@ -434,11 +434,11 @@ class Basic(commands.Cog):
 
         if not player.node._available:
             return await send(ctx, "nodeReconnectode")
-        
+
         if not player.is_privileged(ctx.author):
             if ctx.author in player.previous_votes:
                 return await send(ctx, "voted", ephemeral=True)
-            
+
             player.previous_votes.add(ctx.author)
             if len(player.previous_votes) < (required := player.required()):
                 return await send(ctx, "backVote", ctx.author, len(player.previous_votes), required)
@@ -476,7 +476,7 @@ class Basic(commands.Cog):
         await send(ctx, "seek", position)
 
     @commands.hybrid_group(
-        name="queue", 
+        name="queue",
         aliases=get_aliases("queue"),
         fallback="list",
         invoke_without_command=True
@@ -503,10 +503,10 @@ class Basic(commands.Cog):
         player: voicelink.Player = ctx.guild.voice_client
         if not player:
             return await send(ctx, "noPlayer", ephemeral=True)
-        
+
         if not player.is_user_join(ctx.author):
             return await send(ctx, "notInChannel", ctx.author.mention, player.channel.mention, ephemeral=True)
-        
+
         if player.queue.is_empty and not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
 
@@ -548,7 +548,7 @@ class Basic(commands.Cog):
             bytes = await attachment.read()
             track_ids = bytes.split(b"\n")[-1]
             track_ids = track_ids.decode().split(",")
-            
+
             tracks = [voicelink.Track(track_id=track_id, info=voicelink.decode(track_id), requester=ctx.author) for track_id in track_ids]
             if not tracks:
                 return await send(ctx, "noTrackFound")
@@ -706,7 +706,7 @@ class Basic(commands.Cog):
 
         if not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
-        
+
         if not (num := format_time(position)):
             return await send(ctx, "timeFormatError", ephemeral=True)
 
@@ -726,7 +726,7 @@ class Basic(commands.Cog):
 
         if not player.current:
             return await send(ctx, "noTrackPlaying", ephemeral=True)
-        
+
         await player.seek(0)
         await send(ctx, "replay")
 
@@ -741,11 +741,11 @@ class Basic(commands.Cog):
         if not player.is_privileged(ctx.author):
             if ctx.author in player.shuffle_votes:
                 return await send(ctx, "voted", ephemeral=True)
-            
+
             player.shuffle_votes.add(ctx.author)
             if len(player.shuffle_votes) < (required := player.required()):
                 return await send(ctx, "shuffleVote", ctx.author, len(player.shuffle_votes), required)
-        
+
         await player.shuffle("queue", ctx.author)
         await send(ctx, "shuffled")
 
@@ -764,7 +764,7 @@ class Basic(commands.Cog):
         if not player.is_privileged(ctx.author):
             return await send(ctx, "missingPosPerm", ephemeral=True)
 
-        track1, track2 = await player.swap_track(position1, position2, ctx.author)        
+        track1, track2 = await player.swap_track(position1, position2, ctx.author)
         await send(ctx, "swapped", track1.title, track2.title)
 
     @commands.hybrid_command(name="move", aliases=get_aliases("move"))
@@ -778,7 +778,7 @@ class Basic(commands.Cog):
         player: voicelink.Player = ctx.guild.voice_client
         if not player:
             return await send(ctx, "noPlayer", ephemeral=True)
-        
+
         if not player.is_privileged(ctx.author):
             return await send(ctx, "missingPosPerm", ephemeral=True)
 
@@ -794,17 +794,17 @@ class Basic(commands.Cog):
             player: voicelink.Player = ctx.guild.voice_client
             if not player or not player.is_playing:
                 return await send(ctx, "noTrackPlaying", ephemeral=True)
-            
+
             title = player.current.title
             artist = player.current.author
-        
+
         await ctx.defer()
         lyrics_platform = LYRICS_PLATFORMS.get(settings.lyrics_platform)
         if lyrics_platform:
             lyrics = await lyrics_platform().get_lyrics(title, artist)
             if not lyrics:
                 return await send(ctx, "lyricsNotFound", ephemeral=True)
-            
+
             view = LyricsView(name=title, source={_: re.findall(r'.*\n(?:.*\n){,22}', v or "") for _, v in lyrics.items()}, author=ctx.author)
             view.response = await send(ctx, view.build_embed(), view=view)
 
@@ -849,7 +849,7 @@ class Basic(commands.Cog):
 
         if not player.is_playing:
             await player.do_next()
-        
+
         if player.is_ipc_connected:
             await player.send_ws({"op": "toggleAutoplay", "status": check})
 
@@ -864,6 +864,18 @@ class Basic(commands.Cog):
         embed = view.build_embed(category)
         view.response = await send(ctx, embed, view=view)
 
+    @commands.command(name="sync")
+    @commands.is_owner()  # Restrict to bot owner
+    async def sync(self, ctx: commands.Context) -> None:
+        "Syncs all slash commands with Discord."
+        try:
+            await self.bot.tree.sync()
+            await ctx.send("✅ Slash commands have been successfully synced!")
+            logger.info(f"Slash commands synced by {ctx.author}")
+        except Exception as e:
+            await ctx.send(f"❌ Failed to sync slash commands: {str(e)}")
+            logger.error(f"Failed to sync slash commands: {e}")
+
     @commands.hybrid_command(name="ping", aliases=get_aliases("ping"))
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
     async def ping(self, ctx: commands.Context):
@@ -871,7 +883,7 @@ class Basic(commands.Cog):
         player: voicelink.Player = ctx.guild.voice_client
 
         value = await get_lang(ctx.guild.id, "pingTitle1", "pingField1", "pingTitle2", "pingField2")
-        
+
         embed = discord.Embed(color=settings.embed_color)
         embed.add_field(
             name=value[0],
