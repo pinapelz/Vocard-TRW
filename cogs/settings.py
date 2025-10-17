@@ -49,7 +49,7 @@ class Settings(commands.Cog, name="settings"):
     def __init__(self, bot) -> None:
         self.bot: commands.Bot = bot
         self.description = "This category is only available to admin permissions on the server."
-    
+
     @commands.hybrid_group(
         name="settings",
         aliases=get_aliases("settings"),
@@ -59,7 +59,7 @@ class Settings(commands.Cog, name="settings"):
         view = HelpView(self.bot, ctx.author)
         embed = view.build_embed(self.qualified_name)
         view.response = await send(ctx, embed, view=view)
-    
+
     @settings.command(name="prefix", aliases=get_aliases("prefix"))
     @commands.has_permissions(manage_guild=True)
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
@@ -67,7 +67,7 @@ class Settings(commands.Cog, name="settings"):
         "Change the default prefix for message commands."
         if not self.bot.intents.message_content:
             return await send(ctx, "missingIntents", "MESSAGE_CONTENT", ephemeral=True)
-        
+
         await update_settings(ctx.guild.id, {"$set": {"prefix": prefix}})
         await send(ctx, "setPrefix", prefix, prefix)
 
@@ -219,7 +219,7 @@ class Settings(commands.Cog, name="settings"):
 
         await update_settings(ctx.guild.id, {"$set": {'duplicate_track': toggle}})
         return await send(ctx, "toggleDuplicateTrack", await get_lang(ctx.guild.id, "disabled" if toggle else "enabled"))
-    
+
     @settings.command(name="customcontroller", aliases=get_aliases("customcontroller"))
     @commands.has_permissions(manage_guild=True)
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
@@ -241,7 +241,7 @@ class Settings(commands.Cog, name="settings"):
 
         await update_settings(ctx.guild.id, {"$set": {'controller_msg': toggle}})
         await send(ctx, 'toggleControllerMsg', await get_lang(ctx.guild.id, "enabled" if toggle else "disabled"))
-    
+
     @settings.command(name="silentmsg", aliases=get_aliases("silentmsg"))
     @commands.has_permissions(manage_guild=True)
     @commands.dynamic_cooldown(cooldown_check, commands.BucketType.guild)
@@ -271,7 +271,7 @@ class Settings(commands.Cog, name="settings"):
         "Sets up a dedicated channel for song requests in your server."
         if not self.bot.intents.message_content:
             return await send(ctx, "missingIntents", "MESSAGE_CONTENT", ephemeral=True)
-        
+
         if not channel:
             try:
                 overwrites = {
@@ -287,9 +287,9 @@ class Settings(commands.Cog, name="settings"):
         channel_perms = channel.permissions_for(ctx.me)
         if not channel_perms.text() and not channel_perms.manage_messages:
             return await send(ctx, "noCreatePermission")
-        
+
         settings = await func.get_settings(ctx.guild.id)
-        controller = settings.get("default_controller", func.settings.controller).get("embeds", {}).get("inactive", {})        
+        controller = settings.get("default_controller", func.settings.controller).get("embeds", {}).get("inactive", {})
         message = await channel.send(embed=voicelink.build_embed(controller, voicelink.Placeholders(self.bot)))
 
         await update_settings(ctx.guild.id, {"$set": {'music_request_channel': {
