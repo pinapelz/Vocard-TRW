@@ -235,6 +235,39 @@ class Restaurant(commands.Cog):
 
         return f"Go to **{name}** - {cuisine_text} - {location_text}"
 
+    async def get_restaurants_by_keyword(self, guild_id: int, keyword: str) -> List[dict]:
+        """Get restaurants that match a specific keyword in their cuisine."""
+        restaurants = await self.get_restaurants(guild_id)
+        if not restaurants:
+            return []
+        
+        keyword_lower = keyword.lower()
+        matching_restaurants = []
+        
+        for restaurant in restaurants:
+            cuisine = restaurant.get('cuisine', '').lower()
+            if keyword_lower in cuisine:
+                matching_restaurants.append(restaurant)
+        
+        return matching_restaurants
+
+    async def get_random_restaurant_with_keyword(self, guild_id: int, keyword: str) -> Optional[str]:
+        """Get a random restaurant recommendation that matches a keyword."""
+        matching_restaurants = await self.get_restaurants_by_keyword(guild_id, keyword)
+        if not matching_restaurants:
+            return None
+            
+        restaurant = random.choice(matching_restaurants)
+        name = restaurant['name']
+        cuisine = restaurant.get('cuisine')
+        location = restaurant.get('location')
+        
+        # Use fallback text for missing information
+        cuisine_text = cuisine if cuisine else "idk what cuisine they cook"
+        location_text = location if location else "idk where tf it is"
+        
+        return f"Go to **{name}** - {cuisine_text} - {location_text}"
+
 
     @remove_restaurant.autocomplete("name")
     async def restaurant_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
@@ -387,6 +420,35 @@ class Restaurant(commands.Cog):
             await func.send(ctx, recommendation_text)
         else:
             await func.send(ctx, "No restaurants have been added yet! Use `addrestaurant` to add some.", ephemeral=True)
+
+    @commands.hybrid_command(name="findrestaurant", aliases=func.get_aliases("findrestaurant"))
+    @app_commands.describe(keyword="Keyword to search for (e.g. 'halal', 'vegan')")
+    @commands.dynamic_cooldown(func.cooldown_check, commands.BucketType.guild)
+    async def find_restaurant_by_keyword(self, ctx: commands.Context, *, keyword: str):
+        """Find restaurants with a specific keyword in their cuisine."""
+        matching_restaurants = await self.get_restaurants_by_keyword(ctx.guild.id, keyword.strip())
+        
+        if not matching_restaurants:
+            await func.send(ctx, f"No restaurants found with keyword '{keyword}'.", ephemeral=True)
+            return
+            
+        if len(matching_restaurants) == 1:
+            restaurant = matching_restaurants[0]
+            name = restaurant['name']
+            cuisine = restaurant.get('cuisine')
+            location = restaurant.get('location')
+            
+            cuisine_text = cuisine if cuisine else "idk what cuisine they cook"
+            location_text = location if location else "idk where tf it is"
+            
+            await func.send(ctx, f"Go to **{name}** - {cuisine_text} - {location_text}")
+        else:
+            # Multiple matches, pick random
+            recommendation_text = await self.get_random_restaurant_with_keyword(ctx.guild.id, keyword)
+            if recommendation_text:
+                await func.send(ctx, recommendation_text)
+            else:
+                await func.send(ctx, f"No restaurants found with keyword '{keyword}'.", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Restaurant(bot))
