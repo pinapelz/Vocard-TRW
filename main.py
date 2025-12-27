@@ -36,6 +36,7 @@ from ipc import IPCClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from logging.handlers import TimedRotatingFileHandler
 from addons import Settings
+import datetime
 
 ca = certifi.where()
 
@@ -70,14 +71,51 @@ class Vocard(commands.Bot):
     async def on_message(self, message: discord.Message, /) -> None:
         # Ignore messages from bots or DMs
         if message.author.bot or not message.guild:
-            return False
+            return
 
         # Check if the bot is directly mentioned
         if message.content.strip() == self.user.mention and not message.mention_everyone:
             prefix = await self.command_prefix(self, message)
             if not prefix:
-                return await message.channel.send("I don't have a bot prefix set.")
-            return await message.channel.send(f"My prefix is `{prefix}`")
+                await message.channel.send("I don't have a bot prefix set.")
+                return
+            await message.channel.send(f"My prefix is `{prefix}`")
+            return
+
+        # Check for restaurant trigger words in any message
+        content = message.content.lower()
+        restaurant_triggers = ["where should we eat", "where to eat", "what should we eat",
+                             "restaurant recommendation", "food recommendation", "where eat"]
+
+        if any(trigger in content for trigger in restaurant_triggers):
+            try:
+                restaurant_cog = self.get_cog("Restaurant")
+                if restaurant_cog:
+                    recommendation = await restaurant_cog.get_random_restaurant_for_mention(message.guild.id)
+                    if recommendation:
+                        await message.channel.send(recommendation)
+                    else:
+                        await message.channel.send("I don't have any restaurants saved yet! Use `/restaurant add` to add some recommendations.")
+                else:
+                    await message.channel.send("Restaurant feature is not available right now.")
+            except Exception as e:
+                func.logger.error(f"Error in restaurant mention handler: {e}")
+                await message.channel.send("Sorry, I couldn't get a restaurant recommendation right now.")
+            return
+
+        banned_restaurants = ["danbo", "hello nori", "saku"]
+
+        content_lower = content.lower()
+        for banned_restaurant in banned_restaurants:
+            if banned_restaurant in content_lower:
+                try:
+                    await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=30), reason=f"Mentioned banned restaurant: {banned_restaurant}")
+                except discord.Forbidden:
+                    pass
+                except Exception as e:
+                    func.logger.error(f"Error timing out user: {e}")
+                await message.channel.send(f"{message.author.mention} HELLSS NAHHH WE ARE NOT EATING THAT CUH")
+                return
 
         # Fetch guild settings and check if the mesage is in the music request channel
         settings = await func.get_settings(message.guild.id)
@@ -97,7 +135,8 @@ class Vocard(commands.Bot):
                     await func.send(ctx, str(e), ephemeral=True)
 
                 finally:
-                    return await message.delete()
+                    await message.delete()
+                    return
 
         await self.process_commands(message)
 
