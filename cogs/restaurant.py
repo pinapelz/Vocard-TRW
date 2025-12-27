@@ -126,7 +126,7 @@ class Restaurant(commands.Cog):
         restaurants = await self.get_restaurants(interaction.guild.id)
 
         if not restaurants:
-            await interaction.response.send_message("No restaurants have been added yet! Use `/restaurant add` to add some.", ephemeral=True)
+            await interaction.response.send_message("No restaurants have been added yet! Use `restaurantadd <name>,cuisine/tags,location` to add some.", ephemeral=True)
             return
 
         embed = discord.Embed(
@@ -165,14 +165,14 @@ class Restaurant(commands.Cog):
         restaurants = await self.get_restaurants(interaction.guild.id)
 
         if not restaurants:
-            await interaction.response.send_message("No restaurants have been added yet! Use `/restaurant add` to add some.", ephemeral=True)
+            await interaction.response.send_message("No restaurants have been added yet! Use `restaurantadd <name>,cuisine/tags,location` to add some.", ephemeral=True)
             return
 
         recommendation_text = await self.get_random_restaurant_for_mention(interaction.guild.id)
         if recommendation_text:
             await interaction.response.send_message(recommendation_text)
         else:
-            await interaction.response.send_message("No restaurants have been added yet! Use `/restaurant add` to add some.", ephemeral=True)
+            await interaction.response.send_message("No restaurants have been added yet! Use `restaurantadd <name>,cuisine/tags,location` to add some.", ephemeral=True)
 
     @restaurant_group.command(name="clear", description="Clear all restaurants from the list")
     async def clear_restaurants(self, interaction: discord.Interaction):
@@ -240,15 +240,15 @@ class Restaurant(commands.Cog):
         restaurants = await self.get_restaurants(guild_id)
         if not restaurants:
             return []
-        
+
         keyword_lower = keyword.lower()
         matching_restaurants = []
-        
+
         for restaurant in restaurants:
             cuisine = restaurant.get('cuisine', '').lower()
             if keyword_lower in cuisine:
                 matching_restaurants.append(restaurant)
-        
+
         return matching_restaurants
 
     async def get_random_restaurant_with_keyword(self, guild_id: int, keyword: str) -> Optional[str]:
@@ -256,16 +256,16 @@ class Restaurant(commands.Cog):
         matching_restaurants = await self.get_restaurants_by_keyword(guild_id, keyword)
         if not matching_restaurants:
             return None
-            
+
         restaurant = random.choice(matching_restaurants)
         name = restaurant['name']
         cuisine = restaurant.get('cuisine')
         location = restaurant.get('location')
-        
+
         # Use fallback text for missing information
         cuisine_text = cuisine if cuisine else "idk what cuisine they cook"
         location_text = location if location else "idk where tf it is"
-        
+
         return f"Go to **{name}** - {cuisine_text} - {location_text}"
 
 
@@ -427,20 +427,20 @@ class Restaurant(commands.Cog):
     async def find_restaurant_by_keyword(self, ctx: commands.Context, *, keyword: str):
         """Find restaurants with a specific keyword in their cuisine."""
         matching_restaurants = await self.get_restaurants_by_keyword(ctx.guild.id, keyword.strip())
-        
+
         if not matching_restaurants:
             await func.send(ctx, f"No restaurants found with keyword '{keyword}'.", ephemeral=True)
             return
-            
+
         if len(matching_restaurants) == 1:
             restaurant = matching_restaurants[0]
             name = restaurant['name']
             cuisine = restaurant.get('cuisine')
             location = restaurant.get('location')
-            
+
             cuisine_text = cuisine if cuisine else "idk what cuisine they cook"
             location_text = location if location else "idk where tf it is"
-            
+
             await func.send(ctx, f"Go to **{name}** - {cuisine_text} - {location_text}")
         else:
             # Multiple matches, pick random

@@ -95,7 +95,7 @@ class Vocard(commands.Bot):
                     if recommendation:
                         await message.channel.send(recommendation)
                     else:
-                        await message.channel.send("I don't have any restaurants saved yet! Use `/restaurant add` to add some recommendations.")
+                        await message.channel.send("I don't have any restaurants saved yet! Use `restaurantadd <name>,cuisine/tags,location` to add some recommendations.")
                 else:
                     await message.channel.send("Restaurant feature is not available right now.")
             except Exception as e:
