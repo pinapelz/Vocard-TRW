@@ -85,7 +85,14 @@ class Vocard(commands.Bot):
         # Check for restaurant trigger words in any message
         content = message.content.lower()
         restaurant_triggers = ["where should we eat", "where to eat", "what should we eat",
-                             "restaurant recommendation", "food recommendation", "where eat"]
+                             "restaurant recommendation", "food recommendation", "where eat", "where we eat",
+                             "what's for dinner", "what's for lunch", "where for dinner", "where for lunch",
+                             "food suggestions", "restaurant suggestions", "where should i eat", "where can we eat",
+                             "what to eat", "dining recommendation", "place to eat", "good restaurant",
+                             "food ideas", "eating out", "grab food", "get food", "hungry", "i'm hungry",
+                             "we're hungry", "dinner ideas", "lunch ideas", "breakfast ideas", "meal ideas",
+                             "craving food", "what restaurant", "pick a restaurant", "choose restaurant",
+                             "recommend food", "suggest food", "food spots", "dining spots", "eat where", "where we getting food"]
 
         if any(trigger in content for trigger in restaurant_triggers):
             try:
@@ -103,10 +110,14 @@ class Vocard(commands.Bot):
                 await message.channel.send("Sorry, I couldn't get a restaurant recommendation right now.")
             return
 
-        banned_restaurants = ["danbo", "hello nori", "saku"]
+        banned_restaurants = {
+            "danbo": "HELLSS NAHHH WE ARE NOT EATING THAT CUH. its not halal. long ass lines mid ass ramen",
+            "hello nori": "brooooo srsly. out of all the japanese food u pick the one where you have to sit on hard ass stools and pay $9999 to eat 1 handroll",
+            "saku": "lil brother. this is not only very disrespectfully all pork, we have gone there 1 billion times and the pricing is off the charts."
+        }
 
         content_lower = content.lower()
-        for banned_restaurant in banned_restaurants:
+        for banned_restaurant, custom_response in banned_restaurants.items():
             if banned_restaurant in content_lower:
                 try:
                     await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=30), reason=f"Mentioned banned restaurant: {banned_restaurant}")
@@ -114,7 +125,7 @@ class Vocard(commands.Bot):
                     pass
                 except Exception as e:
                     func.logger.error(f"Error timing out user: {e}")
-                await message.channel.send(f"{message.author.mention} HELLSS NAHHH WE ARE NOT EATING THAT CUH")
+                await message.channel.send(f"{message.author.mention} {custom_response}")
                 return
 
         # Fetch guild settings and check if the mesage is in the music request channel
