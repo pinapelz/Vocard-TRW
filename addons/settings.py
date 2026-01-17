@@ -40,7 +40,8 @@ class Settings:
         self.genius_token: str = settings.get("genius_token") or os.getenv("GENIUS_TOKEN")
         self.mongodb_url: str = settings.get("mongodb_url") or os.getenv("MONGODB_URL")
         self.mongodb_name: str = settings.get("mongodb_name") or os.getenv("MONGODB_NAME")
-        
+        self.exaroton_api_key: str = settings.get("exaroton_api_key") or os.getenv("EXAROTON_API_KEY")
+
         self.invite_link: str = "https://discord.gg/wRCgB7vBQv"
         self.nodes: Dict[str, Dict[str, Union[str, int, bool]]] = settings.get("nodes", {})
         self.max_queue: int = settings.get("default_max_queue", 1000)

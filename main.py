@@ -36,6 +36,7 @@ from ipc import IPCClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from logging.handlers import TimedRotatingFileHandler
 from addons import Settings
+from constants import restaurant_triggers, banned_restaurants, exaroton_start_triggers, exaroton_status_triggers, SERVER_STATUS
 import datetime
 
 ca = certifi.where()
@@ -84,16 +85,6 @@ class Vocard(commands.Bot):
 
         # Check for restaurant trigger words in any message
         content = message.content.lower()
-        restaurant_triggers = ["where should we eat", "where to eat", "what should we eat",
-                             "restaurant recommendation", "food recommendation", "where eat", "where we eat",
-                             "what's for dinner", "what's for lunch", "where for dinner", "where for lunch",
-                             "food suggestions", "restaurant suggestions", "where should i eat", "where can we eat",
-                             "what to eat", "dining recommendation", "place to eat", "good restaurant",
-                             "food ideas", "eating out", "grab food", "get food", "hungry", "i'm hungry",
-                             "we're hungry", "dinner ideas", "lunch ideas", "breakfast ideas", "meal ideas",
-                             "craving food", "what restaurant", "pick a restaurant", "choose restaurant",
-                             "recommend food", "suggest food", "food spots", "dining spots", "eat where", "where we getting food"]
-
         if any(trigger in content for trigger in restaurant_triggers):
             try:
                 restaurant_cog = self.get_cog("Restaurant")
@@ -110,11 +101,83 @@ class Vocard(commands.Bot):
                 await message.channel.send("Sorry, I couldn't get a restaurant recommendation right now.")
             return
 
-        banned_restaurants = {
-            "danbo": "HELLSS NAHHH WE ARE NOT EATING THAT CUH. its not halal. long ass lines mid ass ramen",
-            "hello nori": "brooooo srsly. out of all the japanese food u pick the one where you have to sit on hard ass stools and pay $9999 to eat 1 handroll",
-            "saku": "lil brother. this is not only very disrespectfully all pork, we have gone there 1 billion times and the pricing is off the charts."
-        }
+        if self.user in message.mentions:
+            content_lower = message.content.lower()
+            if any(trigger in content_lower for trigger in exaroton_start_triggers):
+                try:
+                    exaroton_cog = self.get_cog("Exaroton")
+                    if exaroton_cog:
+                        api_key = exaroton_cog.get_api_key()
+                        if not api_key:
+                            await message.reply("API key not configured in settings.json!")
+                            return
+
+                        exaroton_settings = await exaroton_cog.get_exaroton_settings(message.guild.id)
+                        if exaroton_settings:
+                            server_id = exaroton_settings.get("server_id", "")
+
+                            if server_id:
+                                result = await exaroton_cog.exaroton_api_request(f"/servers/{server_id}/start", api_key, method="POST")
+                                if result.get("success", False):
+                                    await message.reply("alright im booting it up. let me cook")
+                                else:
+                                    error_msg = result.get("error", "Unknown error")
+                                    await message.reply(f"Failed to start server: {error_msg}. report this issue to central command")
+                            else:
+                                await message.reply("yeah u ducked up something, idk how to read this config. report this to central command")
+                        else:
+                            await message.reply("little brother. how can i start the server when u didn't even give me a server id. restarted mf")
+                    else:
+                        await message.channel.send("sorry diddly party cannot be started at the moment")
+                except Exception as e:
+                    func.logger.error(f"Error in Exaroton start handler: {e}")
+                    await message.channel.send("sorry diddly party cannot be started at the moment")
+                return
+
+            # Check for Exaroton server status triggers with bot mention
+            if any(trigger in content_lower for trigger in exaroton_status_triggers):
+                try:
+                    exaroton_cog = self.get_cog("Exaroton")
+                    if exaroton_cog:
+                        api_key = exaroton_cog.get_api_key()
+                        if not api_key:
+                            await message.reply("API key not configured in settings.json!")
+                            return
+
+                        exaroton_settings = await exaroton_cog.get_exaroton_settings(message.guild.id)
+                        if exaroton_settings:
+                            server_id = exaroton_settings.get("server_id", "")
+
+                            if server_id:
+                                result = await exaroton_cog.exaroton_api_request(f"/servers/{server_id}", api_key)
+                                if result.get("success", False) and "data" in result:
+                                    server_data = result["data"]
+                                    status = server_data.get("status", -1)
+
+                                    embed = discord.Embed(title="Server Status", color=discord.Color.green() if status == 1 else discord.Color.red())
+                                    embed.add_field(name="Status", value=SERVER_STATUS.get(status, "UNKNOWN"), inline=True)
+
+                                    if "name" in server_data:
+                                        embed.add_field(name="Server", value=server_data["name"], inline=True)
+
+                                    if "players" in server_data:
+                                        players = server_data["players"]
+                                        embed.add_field(name="Players", value=f"{players.get('count', 0)}/{players.get('max', 0)}", inline=True)
+
+                                    await message.channel.send(embed=embed)
+                                else:
+                                    error_msg = result.get("error", "Unknown error")
+                                    await message.channel.send(f"Failed to get server status: {error_msg}. very bad. report this to central command")
+                            else:
+                                await message.channel.send("Exaroton server is not configured properly!")
+                        else:
+                            await message.channel.send("smh. how u want me to tell u anything when u didn't even set the server")
+                    else:
+                        await message.channel.send("Exaroton feature is not available right now.")
+                except Exception as e:
+                    func.logger.error(f"Error in Exaroton status handler: {e}")
+                    await message.channel.send("Sorry, I couldn't check the server status right now.")
+                return
 
         content_lower = content.lower()
         for banned_restaurant, custom_response in banned_restaurants.items():
@@ -147,7 +210,6 @@ class Vocard(commands.Bot):
 
                 finally:
                     await message.delete()
-                    return
 
         await self.process_commands(message)
 
